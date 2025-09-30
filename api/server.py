@@ -3,10 +3,10 @@ from flask_cors import CORS
 import json
 import asyncio
 import re
+import os
 from telegram import Bot
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
-import os
 
 app = Flask(__name__)
 CORS(app)
@@ -104,7 +104,24 @@ async def send_quizzes(questions):
 @app.route('/')
 def index():
     """Serve the HTML interface"""
-    return send_file('../index.html')
+    # Get the absolute path to index.html
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    html_path = os.path.join(base_dir, '..', 'index.html')
+    
+    # Check if file exists
+    if not os.path.exists(html_path):
+        return jsonify({"error": "index.html not found", "path": html_path}), 404
+    
+    return send_file(html_path)
+
+@app.route('/health')
+def health():
+    """Health check endpoint"""
+    return jsonify({
+        "status": "healthy",
+        "service": "Quiz Bot",
+        "channel": CHANNEL_ID
+    }), 200
 
 @app.route('/api/start-bot', methods=['POST'])
 def start_bot():
