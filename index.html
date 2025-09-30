@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Bot Control Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen py-8 px-4">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">📊 Quiz Bot Control Panel</h1>
+            <p class="text-gray-600">Upload your questions JSON and send quizzes to your Telegram channel</p>
+        </div>
+
+        <!-- Main Content -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <div class="mb-6">
+                <label class="block text-sm font-semibold text-gray-700 mb-2">
+                    Questions JSON Data
+                </label>
+                <textarea id="jsonInput"
+                    class="w-full h-64 p-4 border-2 border-gray-300 rounded-lg focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 transition-all font-mono text-sm resize-y"
+                    placeholder='Paste your JSON here, e.g.:
+[
+  {
+    "question": "What is the capital of France?",
+    "options": ["Paris", "London", "Berlin", "Madrid"],
+    "correct_answers": [0],
+    "explication": "Paris is the capital and largest city of France."
+  }
+]'></textarea>
+                <div class="mt-2 flex items-center justify-between">
+                    <span id="charCount" class="text-sm text-gray-500">0 characters</span>
+                    <button onclick="validateJSON()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                        ✓ Validate JSON
+                    </button>
+                </div>
+            </div>
+
+            <!-- Validation Status -->
+            <div id="validationStatus" class="hidden mb-4 p-4 rounded-lg"></div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4">
+                <button onclick="sendToBot()" id="sendButton"
+                    class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    🚀 Start Quiz Bot
+                </button>
+                <button onclick="clearInput()"
+                    class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 px-6 rounded-lg transition-colors">
+                    🗑️ Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Info Panel -->
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">ℹ️ Information</h2>
+            <div class="space-y-3 text-sm text-gray-700">
+                <div class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span><strong>Question limit:</strong> Maximum 300 characters</span>
+                </div>
+                <div class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span><strong>Option limit:</strong> Maximum 100 characters per option</span>
+                </div>
+                <div class="flex items-start">
+                    <span class="text-green-500 mr-2">✓</span>
+                    <span><strong>Explanation limit:</strong> Maximum 4000 characters</span>
+                </div>
+                <div class="flex items-start">
+                    <span class="text-blue-500 mr-2">ℹ</span>
+                    <span><strong>Channel:</strong> @qcmchannel001</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Log -->
+        <div id="statusLog"
+            class="mt-6 bg-gray-900 rounded-lg shadow-lg p-6 text-green-400 font-mono text-sm max-h-64 overflow-y-auto hidden">
+            <div id="logContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const jsonInput = document.getElementById('jsonInput');
+        const charCount = document.getElementById('charCount');
+        const validationStatus = document.getElementById('validationStatus');
+        const sendButton = document.getElementById('sendButton');
+        const statusLog = document.getElementById('statusLog');
+        const logContent = document.getElementById('logContent');
+
+        // Character counter
+        jsonInput.addEventListener('input', () => {
+            charCount.textContent = `${jsonInput.value.length} characters`;
+        });
+
+        function validateJSON() {
+            const input = jsonInput.value.trim();
+
+            if (!input) {
+                showValidation('Please enter JSON data', 'error');
+                return false;
+            }
+
+            try {
+                const data = JSON.parse(input);
+
+                if (!Array.isArray(data)) {
+                    showValidation('JSON must be an array of questions', 'error');
+                    return false;
+                }
+
+                if (data.length === 0) {
+                    showValidation('JSON array is empty', 'error');
+                    return false;
+                }
+
+                // Validate structure
+                for (let i = 0; i < data.length; i++) {
+                    const q = data[i];
+                    if (!q.question || !q.options || !q.correct_answers) {
+                        showValidation(`Question ${i + 1} is missing required fields`, 'error');
+                        return false;
+                    }
+                    if (!Array.isArray(q.options) || q.options.length < 2) {
+                        showValidation(`Question ${i + 1} must have at least 2 options`, 'error');
+                        return false;
+                    }
+                }
+
+                showValidation(`✓ Valid JSON with ${data.length} question(s)`, 'success');
+                return true;
+            } catch (e) {
+                showValidation(`Invalid JSON: ${e.message}`, 'error');
+                return false;
+            }
+        }
+
+        function showValidation(message, type) {
+            validationStatus.className = type === 'success'
+                ? 'mb-4 p-4 rounded-lg bg-green-50 border-2 border-green-500 text-green-800'
+                : 'mb-4 p-4 rounded-lg bg-red-50 border-2 border-red-500 text-red-800';
+            validationStatus.textContent = message;
+            validationStatus.classList.remove('hidden');
+        }
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? 'text-red-400' : type === 'success' ? 'text-green-400' : 'text-blue-400';
+            logContent.innerHTML += `<div class="${color}">[${timestamp}] ${message}</div>`;
+            statusLog.classList.remove('hidden');
+            statusLog.scrollTop = statusLog.scrollHeight;
+        }
+
+        async function sendToBot() {
+            if (!validateJSON()) {
+                return;
+            }
+
+            const jsonData = jsonInput.value.trim();
+            sendButton.disabled = true;
+            sendButton.innerHTML = '⏳ Processing...';
+
+            logContent.innerHTML = '';
+            addLog('Starting quiz bot...', 'info');
+
+            try {
+                const response = await fetch('/api/start-bot', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: jsonData
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    addLog(`✓ Success! ${result.sent} questions sent, ${result.skipped} skipped`, 'success');
+                    showValidation(`Quiz sent successfully! ${result.sent} questions posted.`, 'success');
+                } else {
+                    const error = await response.text();
+                    addLog(`✗ Error: ${error}`, 'error');
+                    showValidation(`Error: ${error}`, 'error');
+                }
+            } catch (error) {
+                addLog(`✗ Connection error: ${error.message}`, 'error');
+                showValidation(`Connection error: ${error.message}`, 'error');
+            } finally {
+                sendButton.disabled = false;
+                sendButton.innerHTML = '🚀 Start Quiz Bot';
+            }
+        }
+
+        function clearInput() {
+            jsonInput.value = '';
+            charCount.textContent = '0 characters';
+            validationStatus.classList.add('hidden');
+            logContent.innerHTML = '';
+            statusLog.classList.add('hidden');
+        }
+    </script>
+</body>
+
+</html>
