@@ -5,11 +5,14 @@ import asyncio
 import re
 from telegram import Bot
 from telegram.constants import ParseMode
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-TOKEN = "7736053973:AAEU3U_2XygGNVnzISrie_MJLEhQfRkU6t4"
+load_dotenv()
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 CHANNEL_ID = "@qcmchannel001"
 
 def strip_html(text):
@@ -101,7 +104,7 @@ async def send_quizzes(questions):
 @app.route('/')
 def index():
     """Serve the HTML interface"""
-    return send_file('index.html')
+    return send_file('../index.html')
 
 @app.route('/api/start-bot', methods=['POST'])
 def start_bot():
@@ -126,6 +129,12 @@ def start_bot():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    print("🚀 Quiz Bot Server starting...")
-    print("📱 Open http://localhost:5000 in your browser")
-    app.run(debug=True, port=5000)
+    if not TOKEN:
+        print("✗ ERREUR: Le jeton du bot Telegram n'est pas défini.")
+        print("  ↳ Créez un fichier .env et ajoutez TELEGRAM_BOT_TOKEN=VOTRE_JETON")
+    else:
+        print("🚀 Quiz Bot Server starting...")
+        print("  ↳ Token: ...{}".format(TOKEN[-4:]))
+        print("  ↳ Channel: {}".format(CHANNEL_ID))
+        print("  ↳ Ready to accept requests at http://localhost:5000")
+        app.run(debug=False, port=5000)
