@@ -93,7 +93,7 @@ async def send_quizzes(questions):
                 )
                 print(f"  ↳ Explication envoyée")
             
-            await asyncio.sleep(15)
+            await asyncio.sleep(30)
             
         except Exception as e:
             print(f"✗ Erreur avec la question {i}: {e}")
