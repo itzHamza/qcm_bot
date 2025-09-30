@@ -13,7 +13,7 @@ CORS(app)
 
 load_dotenv()
 TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-CHANNEL_ID = "@qcmchannel001"
+CHANNEL_ID = "@tbiibeqcm"
 
 def strip_html(text):
     """Supprime les balises HTML et nettoie le texte"""
