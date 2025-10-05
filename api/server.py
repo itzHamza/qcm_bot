@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify, send_file, Response
 from flask_cors import CORS
 import json
 import asyncio
@@ -7,6 +7,8 @@ import os
 from telegram import Bot
 from telegram.constants import ParseMode
 from dotenv import load_dotenv
+from converter import convert_pdf_to_html
+import tempfile
 
 app = Flask(__name__)
 CORS(app)
@@ -104,13 +106,13 @@ async def send_quizzes(questions):
 @app.route('/')
 def index():
     """Serve the HTML interface"""
-    # Get the absolute path to index.html
+    # Get the absolute path to pdftohtml.html
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    html_path = os.path.join(base_dir, '..', 'index.html')
+    html_path = os.path.join(base_dir, '..', 'pdftohtml.html')
     
     # Check if file exists
     if not os.path.exists(html_path):
-        return jsonify({"error": "index.html not found", "path": html_path}), 404
+        return jsonify({"error": "pdftohtml.html not found", "path": html_path}), 404
     
     return send_file(html_path)
 
@@ -144,6 +146,26 @@ def start_bot():
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/convert', methods=['POST'])
+def convert():
+    if 'pdf_file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['pdf_file']
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    if file:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+            file.save(tmp.name)
+            tmp_pdf_path = tmp.name
+
+        try:
+            html_content = convert_pdf_to_html(tmp_pdf_path)
+            return Response(html_content, mimetype='text/html')
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        finally:
+            os.remove(tmp_pdf_path)
 
 if __name__ == '__main__':
     if not TOKEN:

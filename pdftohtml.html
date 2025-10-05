@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF to HTML Converter</title>
+</head>
+<body>
+    <h1>PDF to HTML Converter</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+        <input type="file" id="pdf-file" name="pdf_file" accept=".pdf" required>
+        <button type="submit">Convert to HTML</button>
+    </form>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('upload-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData();
+            formData.append('pdf_file', document.getElementById('pdf-file').files[0]);
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = 'Converting...';
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = 'converted.html';
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    resultDiv.innerHTML = 'Conversion successful! Check your downloads.';
+                } else {
+                    const error = await response.json();
+                    resultDiv.innerHTML = `Error: ${error.error}`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
